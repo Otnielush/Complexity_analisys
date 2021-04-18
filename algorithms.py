@@ -1,0 +1,258 @@
+import numpy as np
+import random
+import re
+import copy
+import pandas as pd
+from nltk.tokenize import word_tokenize
+
+
+                                            # Word entrophy
+# чем больше спектр типов слов(спряжений и тп) тем больше информации упаковывается в слово нежели в словосочетание или предложение.
+# T - text
+# V - vocabulary of word types {w1,w2,w3,w4,..,wVV} VV = |V|
+# p(w) = Pr(T=w) for w in V - probability of word type
+
+# The average information content of word types:
+# H(T) = - sum( p(w_i) * log2(p(w_i)) ) from i=1 to VV
+# jse - James-Stein shrinkage estimator
+def Word_entrophy(text, jse=False, alpha=0.7):
+    if type(text) == list:
+        text = ''.join(text)
+    text = text.replace('\n', ' ').replace('  ', ' ').split(' ')
+
+    # probability of word type
+    # prob_dict = {x[0]:x[1]/len(text)   for x in np.transpose(np.unique(text, return_counts=True))}
+    prob_dict = {}
+    for w in text:
+        if w in prob_dict:
+            prob_dict[w] += 1
+        else:
+            prob_dict[w] = 1
+    prob_dict = {x:prob_dict[x]/len(text) for x in prob_dict}
+
+    # James-Stein shrinkage estimator
+    if jse:
+        max_prob = prob_dict[max(prob_dict, key=prob_dict.get)]  # maximum probability from our text
+        alpha_func = lambda x: round(alpha * x + (1 - alpha) * max_prob, 6)
+        prob_dict = {x:alpha_func(prob_dict[x]) for x in prob_dict}
+
+    return round(-sum( prob_dict[word] * np.log2((prob_dict[word])) for word in prob_dict ), 5)
+
+
+
+                                    # Relative entropy of word structure
+# T - text drawn from alphabet A
+# A = {c1,c2,c3,..cAA} - alphabet
+#
+# ~H(T) = [ sum( l_i / log2(i+1) ) / n ]^-1 for i {1:n}
+#
+# n - number of characters in text (T)
+# l_i - is the length of the longest substring from position i onward that has not appeared before
+#
+# ~D = ~H(T_masked) - ~H(T_orig)
+#
+# T_masked - token of the same length but with characters randomly drawn with equal probability from the alphabet A
+def longest_substring(text):
+    # last index of every character
+    last_idx = {}
+    max_len = 0
+
+    # starting index of current
+    # window to calculate max_len
+    start_idx = 0
+
+    for i in range(0, len(string)):
+
+        # Find the last index of str[i]
+        # Update start_idx (starting index of current window)
+        # as maximum of current value of start_idx and last
+        # index plus 1
+        if string[i] in last_idx:
+            start_idx = max(start_idx, last_idx[string[i]] + 1)
+
+        # Update result if we get a larger window
+        max_len = max(max_len, i - start_idx + 1)
+
+        # Update last index of current char.
+        last_idx[string[i]] = i
+
+    return max_len
+
+
+def max_shortest_substring(text, i):
+    max_len = 0
+    start = 0
+    exist = 1
+    lenght = 0
+    text_len = len(text)
+    while True:
+        while exist and (i + start + lenght) <= text_len:
+            lenght += 1
+            exist_old = exist
+            exist = re.search(text[i + start: i + start + lenght], text[:i])
+        if max_len < lenght and exist is None:
+            max_len = lenght
+        lenght = 0
+        start += 1
+        exist = 1
+        if text_len - (i + start) < max_len:
+            return max_len
+
+
+def probability_char(text):
+    text = ''.join(text).translate({ord(i): None for i in '“”<>,][.;:!?)/−(" ' + "'"})
+    char_counts = {}
+    char_prob = {}
+    for i in range(len(text)):
+        if text[i] in char_counts:
+            char_counts[text[i]] += 1
+        else:
+            char_counts[text[i]] = 1
+    char_prob = {x: char_counts[x] / len(text) for x in char_counts}
+    return char_prob, char_counts
+
+
+def calc_probability_word(word, dict_prob):
+    summ = 0
+    for w in word:
+        summ += dict_prob[w]
+    return summ
+
+
+def make_random_copy_text(text):
+    prob_char, _ = probability_char(text)
+    text = text.translate({ord(i): None for i in '“”<>,][.;:!?)/−("' + "'"}).split(' ')
+    text_c = copy.deepcopy(text)
+
+    chars = [x for x in prob_char]
+
+    prob_dev = 0.1
+    # print('Making random copy of text', end='')
+    for i in range(len(text)):
+        # print('\rMaking random copy of text: {:2.2f}% '.format((i + 1) / len(text) * 100), end='')
+        word_prob = calc_probability_word(text[i], prob_char)
+        new_word_prob = 0
+
+        while new_word_prob < word_prob * (1 - prob_dev) or new_word_prob > word_prob * (1 + prob_dev):
+            new_word = ''
+            new_word_prob = 0
+            for l in range(len(text[i])):
+                new_char = random.choice(chars)
+                new_word += new_char
+                new_word_prob += prob_char[new_char]
+
+        text_c[i] = new_word
+    # print('\rText copied with the same probability')
+    return text_c
+
+
+# input string of text
+def Relative_entropy(text, redundancy=False):
+    summ = 0
+    if type(text) == list:
+        text = ''.join(text)
+    text = text.replace('\n', ' ')
+    text_2 = ''.join(text.split(' ')).translate({ord(i): None for i in '“”<>,][.;:!?)/−(" ' + "'"})
+    print('RE: 00.0%', end='')
+    len_print = 9
+    for i in np.arange(0, len(text_2), 1):
+        # max length of the shortest substring from position i onward that has not appeared before
+        l = max_shortest_substring(text_2, i)
+        summ += (l / np.log2(i + 1 + 1))  # "i+1+1" in formula cicle from 1, we go from 0
+        msg = 'RE: {:2.1f}%'.format((i + 1) / len(text_2) * 100)
+        print(len_print*'\b'+msg, end='')
+        len_print = len(msg)
+
+    RE = pow(summ, -1)
+    print('\b'*9, end='')
+
+    # To estimate the amount of redundancy/predictability contributed by within-word structure, Koplenig
+    # et al. (2016) replace each word token in T by a token of the same length but with characters randomly
+    # drawn with equal probability from the alphabet A. The entropy of the original text is then subtracted
+    # from the masked text
+    if redundancy:
+        RE_masked = Relative_entropy(make_random_copy_text(text), False)
+
+        # The bigger D̂, the more information is stored within words, i.e. in morphological regularities. This
+        # measure of morphological complexity is denoted CD in the following
+        D = RE_masked - RE
+
+        RE = D
+        # print('Redundancy of RE:', round(RE, 6))
+
+    return RE
+
+
+                                        # TTR - Type/Token ratios
+# C_TTR = V / ( summ(fr_i) )
+#
+# V - number of all types of words(tokens)
+# fr - frequency of i type
+# input string of text
+def TTR(text):
+    if type(text) == list:
+        text = ''.join(text)
+    text = text.translate({ord(i): None for i in '“”<>,][.;:!?)/−("'+"'"}).split(' ')
+    pps = np.unique(text, return_counts=True)
+    return len(pps[0])/sum(pps[1])
+
+
+                                        # MATTR: TTR + window
+# input string of text
+def MATTR(text, window=500):
+    if type(text) == list:
+        text = ''.join(text)
+    pos = 1
+    result = 0
+    while pos + window <= len(text):
+        result += TTR(text[pos-1: pos-1+window])
+        pos += 1
+    return result/pos
+
+
+
+
+if __name__ == '__main__':
+
+    tt = '''once upon a time there was a boy sitting down with his dog and a frog
+he went to bed with the dog on his bed
+and the frog got out_of the pot
+he woke up
+and the frog had gone from his pot
+he looked in his boot
+the dog looked in his pot and got his head stuck
+and he called out the window for the frog
+the dog fell out the window
+the boy didn't look very happy with the dog
+and the dog looked pleased
+he kept calling for the frog
+he called down a hole , while the dog was attacking the bees
+something come out_of the hole and bit his nose
+he called into the tree trunk to see if the frog was in there
+an owl come out and knocked him off the tree
+and bees were chasing the dog
+the owl flew back up on to the tree
+he climbed up on to some rocks
+and he landed on the reindeer
+the reindeer ran to the edge of the cliff
+the dog was in front
+they both fell off the edge of the cliff into water
+and he laughed
+the dog sat on his head
+he told the dog to be quiet
+there was a log near the lake
+and they went over there
+and they saw his frog and another frog and loads of baby frogs
+he took one of the baby frogs and said goodbye
+and that's it'''
+
+    # pr = Word_entrophy(tt)
+    # print(pr)
+    # re = Relative_entropy(tt, True)
+    # print(re)
+    ttr = TTR(tt)
+    print(f"{ttr = }")
+    mttr = MATTR(tt)
+    print(f"{mttr = }")
+
+
