@@ -4,9 +4,12 @@ import numpy as np
 from algorithms import Word_entrophy, Relative_entropy, TTR, MATTR
 import pandas as pd
 
-
-def analyse():
-    table_results = pd.DataFrame([], columns=['Corpus', 'File name', 'Word entropy', 'Relative entropy of word structure', 'TTR', "MTTR"])
+# input DataFrame pandas
+def analyse(table_results):
+    if table_results.shape[0] == 0:
+        table_new = True
+    else:
+        table_new = False
     # open directory as corpus
     corpus_num = 0
     file_num_total = 0
@@ -14,10 +17,13 @@ def analyse():
         corpus_num += 1
         record = {}
         path_corpus = os.path.join(path, corpus)
-        record['Corpus'] = os.path.split(path_corpus)[-1]
-        # open files for analysis
-        file_num = 0
-
+        # directory check
+        if os.path.isdir(path_corpus):
+            record['Corpus'] = os.path.split(path_corpus)[-1]
+            # open files for analysis
+            file_num = 0
+        else:
+            continue
 
         for file in os.listdir(path_corpus):
             file_num += 1
@@ -31,9 +37,16 @@ def analyse():
             path_file = os.path.join(path_corpus, file)
             if os.path.isfile(path_file):
                 record['File name'] = os.path.split(path_file)[-1].split('.')[0]
+
+                # #condition for Dataset editing
+                # if table_results[
+                #     (table_results['Corpus'] == record['Corpus']) & (table_results['File name'] == record['File name'])]['MTTR'].values == 0:
+                #     print('\nFile:', record['File name'])
+                # else:
+                #     continue
+
                 with open(path_file, 'r') as f:
                     text = f.readlines()
-
                 try:
                     record['Word entropy'] = Word_entrophy(text)
                 except:
@@ -51,11 +64,14 @@ def analyse():
                 except:
                     record['MTTR'] = -1000
 
-                table_results = table_results.append(record, ignore_index=True)
+                if table_new:
+                    table_results = table_results.append(record, ignore_index=True)
+                else:
+                    table_results.loc[file_num_total-1, :] = record.values()
 
     print()
-    table_results.to_csv('corpus_analysis_results.csv')
-    table_results.to_excel('corpus_analysis_results.xlsx')
+    table_results.to_csv('corpus_analysis_results.csv', index=None)
+    table_results.to_excel('corpus_analysis_results.xlsx', index=None)
 
     return
 
@@ -85,4 +101,7 @@ if __name__ == "__main__":
     print('Analyse all this files?  y / any key')
     do_analyse = input()
     if do_analyse.lower() == 'y':
-        analyse()
+        table_results = pd.DataFrame([], columns=['Corpus', 'File name', 'Word entropy',
+                                                  'Relative entropy of word structure', 'TTR', "MTTR"])
+
+        analyse(table_results)

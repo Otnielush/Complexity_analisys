@@ -17,7 +17,7 @@ from nltk.tokenize import word_tokenize
 # jse - James-Stein shrinkage estimator
 def Word_entrophy(text, jse=False, alpha=0.7):
     if type(text) == list:
-        text = ''.join(text)
+        text = ' '.join(text)
     text = text.replace('\n', ' ').replace('  ', ' ').split(' ')
 
     # probability of word type
@@ -89,7 +89,7 @@ def max_shortest_substring(text, i):
         while exist and (i + start + lenght) <= text_len:
             lenght += 1
             exist_old = exist
-            exist = re.search(text[i + start: i + start + lenght], text[:i])
+            exist = re.search(re.escape(text[i + start: i + start + lenght]), text[:i])
         if max_len < lenght and exist is None:
             max_len = lenght
         lenght = 0
@@ -150,21 +150,21 @@ def make_random_copy_text(text):
 def Relative_entropy(text, redundancy=False):
     summ = 0
     if type(text) == list:
-        text = ''.join(text)
+        text = ' '.join(text)
     text = text.replace('\n', ' ')
-    text_2 = ''.join(text.split(' ')).translate({ord(i): None for i in '“”<>,][.;:!?)/−(" ' + "'"})
+    text_2 = ''.join(text.split(' ')).translate({ord(i): None for i in '“”<>,][.;:!?)/−*(" ' + "'"})
     print('RE: 00.0%', end='')
     len_print = 9
-    for i in np.arange(0, len(text_2), 1):
+    for i in np.arange(1, len(text_2), 1):    # <-------------- CHANGES HERE. starting from 1 because need to divide text to 2 parts
         # max length of the shortest substring from position i onward that has not appeared before
         l = max_shortest_substring(text_2, i)
-        summ += (l / np.log2(i + 1 + 1))  # "i+1+1" in formula cicle from 1, we go from 0
+        summ += (l / np.log2(i + 1))
         msg = 'RE: {:2.1f}%'.format((i + 1) / len(text_2) * 100)
         print(len_print*'\b'+msg, end='')
         len_print = len(msg)
 
     RE = pow(summ, -1)
-    print('\b'*9, end='')
+    print('\b'*len_print, end='')
 
     # To estimate the amount of redundancy/predictability contributed by within-word structure, Koplenig
     # et al. (2016) replace each word token in T by a token of the same length but with characters randomly
@@ -191,7 +191,7 @@ def Relative_entropy(text, redundancy=False):
 # input string of text
 def TTR(text):
     if type(text) == list:
-        text = ''.join(text)
+        text = ' '.join(text)
     text = text.translate({ord(i): None for i in '“”<>,][.;:!?)/−("'+"'"}).split(' ')
     pps = np.unique(text, return_counts=True)
     return len(pps[0])/sum(pps[1])
@@ -201,11 +201,14 @@ def TTR(text):
 # input string of text
 def MATTR(text, window=500):
     if type(text) == list:
-        text = ''.join(text)
-    pos = 1
+        text = ' '.join(text)
+
+    if len(text) < window:  # <--------- CHANGES HERE
+        window = len(text)
+    pos = 0
     result = 0
     while pos + window <= len(text):
-        result += TTR(text[pos-1: pos-1+window])
+        result += TTR(text[pos: pos+window])
         pos += 1
     return result/pos
 
@@ -214,42 +217,29 @@ def MATTR(text, window=500):
 
 if __name__ == '__main__':
 
-    tt = '''once upon a time there was a boy sitting down with his dog and a frog
-he went to bed with the dog on his bed
-and the frog got out_of the pot
-he woke up
-and the frog had gone from his pot
-he looked in his boot
-the dog looked in his pot and got his head stuck
-and he called out the window for the frog
-the dog fell out the window
-the boy didn't look very happy with the dog
-and the dog looked pleased
-he kept calling for the frog
-he called down a hole , while the dog was attacking the bees
-something come out_of the hole and bit his nose
-he called into the tree trunk to see if the frog was in there
-an owl come out and knocked him off the tree
-and bees were chasing the dog
-the owl flew back up on to the tree
-he climbed up on to some rocks
-and he landed on the reindeer
-the reindeer ran to the edge of the cliff
-the dog was in front
-they both fell off the edge of the cliff into water
-and he laughed
-the dog sat on his head
-he told the dog to be quiet
-there was a log near the lake
-and they went over there
-and they saw his frog and another frog and loads of baby frogs
-he took one of the baby frogs and said goodbye
-and that's it'''
+    tt = '''que una vez estaba mirando en el bote
+estaban durmiendo
+y se despertaron
+y se le escapó la rana
+luego el perro metió la cabeza en el frasco
+luego se cayó por la ventana
+y luego se fueron y
+luego se fueron a un avispero
+luego se metieron en el árbol en el
+se cayó
+y luego todas las avispas le fueron a picar al perro
+está ya y éste
+le coge un ciervo el perro
+y luego se quedan
+le tiran al niño a un lago
+cogen a su rana otra vez
+luego se van a casa
+'''
 
     # pr = Word_entrophy(tt)
     # print(pr)
-    # re = Relative_entropy(tt, True)
-    # print(re)
+    re = Relative_entropy(tt, True)
+    print(re)
     ttr = TTR(tt)
     print(f"{ttr = }")
     mttr = MATTR(tt)
