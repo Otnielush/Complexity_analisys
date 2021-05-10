@@ -146,6 +146,23 @@ def make_random_copy_text(text):
     return text_c
 
 
+def make_random_copy_text2(text):
+    text = text.translate({ord(i): None for i in '“”<>,][.;:!?)/−("' + "'"}).split(' ')
+    text_c = copy.deepcopy(text)
+
+    A = [chr(x) for x in np.arange(97, 97 + 26, 1)]  # Alphabet
+
+    for i in range(len(text_c)):
+        word_len = len(text_c[i])
+        if word_len > 1:
+            new_word = ''
+            for _ in range(word_len):
+                new_word += random.choice(A)
+
+            text_c[i] = new_word
+    return text_c
+
+
 # input string of text
 def Relative_entropy(text, redundancy=False):
     summ = 0
@@ -163,6 +180,7 @@ def Relative_entropy(text, redundancy=False):
         print(len_print*'\b'+msg, end='')
         len_print = len(msg)
 
+    summ /= len(text_2)
     RE = pow(summ, -1)
     print('\b'*len_print, end='')
 
@@ -171,7 +189,7 @@ def Relative_entropy(text, redundancy=False):
     # drawn with equal probability from the alphabet A. The entropy of the original text is then subtracted
     # from the masked text
     if redundancy:
-        RE_masked = Relative_entropy(make_random_copy_text(text), False)
+        RE_masked = Relative_entropy(make_random_copy_text2(text), False)
 
         # The bigger D̂, the more information is stored within words, i.e. in morphological regularities. This
         # measure of morphological complexity is denoted CD in the following

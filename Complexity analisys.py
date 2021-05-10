@@ -75,7 +75,7 @@ def analyse(table_results):
 
                     # #condition for Dataset editing
                     # if table_results[
-                    #     (table_results['Corpus'] == record['Corpus']) & (table_results['File name'] == record['File name'])]['MTTR'].values == 0:
+                    #     (table_results['Kindergarten'] == 'Inkelas') & (table_results['File name'] == record['File name'])]['cwi complexity'].values == -1000:
                     #     print('\nFile:', record['File name'])
                     # else:
                     #     continue
@@ -104,11 +104,16 @@ def analyse(table_results):
                     text = text.replace('.', '')
                     try:
                         CL.convert_format_string(text)
+                        print('1')
                         probs = CL.get_prob_labels()
                         record['cwi complexity'] = np.mean(probs)
+                        print('1')
                         record['cwi std'] = np.std(probs)
+                        print('1')
                         record['cwi min'] = np.min(probs)
+                        print('1')
                         record['cwi max'] = np.max(probs)
+                        print('1')
                         record['cwi probs'] = probs
                     except:
                         record['cwi complexity'] = -1000
@@ -171,4 +176,5 @@ if __name__ == "__main__":
     table_results = pd.DataFrame([], columns=['Kindergarten', 'Child name', 'Age', 'File name', 'cwi complexity', 'cwi std', 'cwi min', 'cwi max',
                                               'Word entropy', 'Relative entropy of word structure', 'TTR', "MTTR", 'cwi probs'])
     loader()
+    table_results = pd.read_csv('complexity_analysis_results.csv')
     analyse(table_results)
