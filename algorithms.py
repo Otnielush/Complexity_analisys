@@ -28,15 +28,21 @@ def Word_entrophy(text, jse=False, alpha=0.7):
             prob_dict[w] += 1
         else:
             prob_dict[w] = 1
-    prob_dict = {x:prob_dict[x]/len(text) for x in prob_dict}
+    prob_dict = {x: prob_dict[x] / len(text) for x in prob_dict}
 
     # James-Stein shrinkage estimator
     if jse:
-        max_prob = prob_dict[max(prob_dict, key=prob_dict.get)]  # maximum probability from our text
-        alpha_func = lambda x: round(alpha * x + (1 - alpha) * max_prob, 6)
-        prob_dict = {x:alpha_func(prob_dict[x]) for x in prob_dict}
+        shrinkage_prob = 1 / len(prob_dict)
+        max_prob = prob_dict
+        # max_prob = prob_dict[max(prob_dict, key=prob_dict.get)]  # maximum probability from our text
+        alpha_func = lambda x: round(alpha * shrinkage_prob + (1 - alpha) * x, 6)
+        prob_dict = {x: alpha_func(prob_dict[x]) for x in prob_dict}
 
-    return round(-sum( prob_dict[word] * np.log2((prob_dict[word])) for word in prob_dict ), 5)
+    return round(-sum(prob_dict[word] * np.log2((prob_dict[word])) for word in prob_dict), 5)
+
+text = "hi you are the best are you good"
+
+print(Word_entrophy(text, True))
 
 
 
