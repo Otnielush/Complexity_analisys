@@ -4,8 +4,9 @@ import re
 import copy
 import pandas as pd
 from nltk.tokenize import word_tokenize
+import itertools
 
-
+import time
                                             # Word entrophy
 # чем больше спектр типов слов(спряжений и тп) тем больше информации упаковывается в слово нежели в словосочетание или предложение.
 # T - text
@@ -33,16 +34,13 @@ def Word_entrophy(text, jse=False, alpha=0.7):
     # James-Stein shrinkage estimator
     if jse:
         shrinkage_prob = 1 / len(prob_dict)
-        max_prob = prob_dict
+        # max_prob = prob_dict
         # max_prob = prob_dict[max(prob_dict, key=prob_dict.get)]  # maximum probability from our text
         alpha_func = lambda x: round(alpha * shrinkage_prob + (1 - alpha) * x, 6)
         prob_dict = {x: alpha_func(prob_dict[x]) for x in prob_dict}
 
     return round(-sum(prob_dict[word] * np.log2((prob_dict[word])) for word in prob_dict), 5)
 
-text = "hi you are the best are you good"
-
-print(Word_entrophy(text, True))
 
 
 
@@ -85,7 +83,9 @@ def longest_substring(text):
     return max_len
 
 
-def max_shortest_substring(text, i):
+
+
+def max_shortest_substring_d(text, i):
     max_len = 0
     start = 0
     exist = 1
@@ -103,6 +103,7 @@ def max_shortest_substring(text, i):
         exist = 1
         if text_len - (i + start) < max_len:
             return max_len
+
 
 
 def probability_char(text):
@@ -161,21 +162,69 @@ def make_random_copy_text2(text):
     for i in range(len(text_c)):
         word_len = len(text_c[i])
         if word_len > 1:
-            new_word = ''
-            for _ in range(word_len):
-                new_word += random.choice(A)
-
+            new_word = ''.join([random.choice(A) for _ in range(word_len)])
             text_c[i] = new_word
     return text_c
 
 
+def isSub(t1, t2):
+    lt2 = len(t2)
+
+    startI = t1.find(t2)
+    endI = startI + lt2
+
+    if startI >= 0 and endI < len(t1):
+        return lt2 + 1
+    else:
+        return 0
+
+
+def max_shortest_substring3(text, i):
+    part1, part2 = text[:i], text[i:]
+
+    # Get all substrings of string
+    # Using itertools.combinations()
+    res = sorted(
+        set([part1[x:y] for x, y in itertools.combinations(range(len(part1) + 1), r=2) if (y - x) <= len(part2)]),
+        key=lambda x: len(x), reverse=True)
+    for x in res:
+        r = isSub(part2, x)
+        if r > 0:
+            # print(x)
+            return r
+    return 0
+
+def max_shortest_substring(text, i):
+    max_len = 0
+    start = 0
+    exist = 1
+    lenght = 0
+    text_len = len(text)
+    while True:
+        while exist and (i + start + lenght) <= text_len:
+            lenght += 1
+            exist_old = exist
+            exist = re.search(re.escape(text[i + start: i + start + lenght]), text[:i])
+        if max_len < lenght and exist is None:
+            max_len = lenght
+        lenght = 0
+        start += 1
+        exist = 1
+        if text_len - (i + start) < max_len:
+            return max_len
+
 # input string of text
-def Relative_entropy(text, redundancy=False):
+def Relative_entropy_old(text, redundancy=False):
     summ = 0
     if type(text) == list:
         text = ' '.join(text)
+
     text = text.replace('\n', ' ')
-    text_2 = ''.join(text.split(' ')).translate({ord(i): None for i in '“”<>,][.;:!?)/−*(" ' + "'"})
+    # special = '“”<>,][.;:!?)/−*(" ' + "'"
+    # text_2 = cleanText( text)
+    text_2 = ' '.join(text.split(' ')).translate({ord(i): None for i in '“”<>,][.;:!?)/−*("' + "'"})
+    text_2 = text_2.replace('  ', ' ')
+
     print('RE: 00.0%', end='')
     len_print = 9
     for i in np.arange(1, len(text_2), 1):    # <-------------- CHANGES HERE. starting from 1 because need to divide text to 2 parts
@@ -195,7 +244,7 @@ def Relative_entropy(text, redundancy=False):
     # drawn with equal probability from the alphabet A. The entropy of the original text is then subtracted
     # from the masked text
     if redundancy:
-        RE_masked = Relative_entropy(make_random_copy_text2(text), False)
+        RE_masked = Relative_entropy_old(getRandEntry(text), False)
 
         # The bigger D̂, the more information is stored within words, i.e. in morphological regularities. This
         # measure of morphological complexity is denoted CD in the following
@@ -205,6 +254,93 @@ def Relative_entropy(text, redundancy=False):
         # print('Redundancy of RE:', round(RE, 6))
 
     return RE
+
+
+    # ----------------------------------------------------------------------------------------
+# TODO dict for copy text and dinamic max shortest....
+def getRandEntry(text, lang='en'):
+    if re.search('áéíó', text):
+        lang = 'fr'
+    if lang == 'en':
+        A = [x for x in 'abcdefghigklmnopqrstuvwxyz']
+    else:
+        A = [x for x in 'abcdefghigklmnopqrstuvwxyzáéíóúüñèèçàêô']
+
+    Dict_random = dict()
+    for word in text.split(' '):
+        if word in Dict_random.keys():
+            continue
+        Dict_random[word] = randomizeWord(len(word))
+
+    res = []
+    for x in text.split(' '):
+        if len(x) > 1:
+            res.append(Dict_random[x])
+        else:
+            res.append(x)
+
+    text_n = " ".join(res)
+    # print('text', text)
+    # print('copy', text_n)
+    return text_n
+
+
+def cleanText(text):
+    text = text.replace('\n', ' ')
+    special = '“”<>,\]\[\.;:!\?\)/−\*\(" \''
+
+    return re.sub(special, '', text)
+
+def randomizeWord(l):
+    A = [x for x in'abcdefghigklmnopqrstuvwxyz']
+    return "".join([random.choice(A) for x in range(l)] )
+
+
+def make_random_text(text):
+
+    text_c =cleanText(text.lower())
+    # text_c = copy.deepcopy(text)
+    # A = [chr(x) for x in np.arange(97, 97 + 26, 1)]  # Alphabet
+    res= []
+    for x in text_c.split():
+        if len(x)>1 :
+            res.append(randomizeWord(len(x)))
+        else:
+            res.append(x)
+    return " ".join(res)
+
+def H(text):
+    summ = 0
+    # if type(text) == list:
+    #     text = ' '.join(text)
+    # text = text.replace('\n', ' ')
+    #
+    # text_2 = cleanText( text)
+    # text_2 = ' '.join(text.split(' ')).translate({ord(i): None for i in '“”<>,][.;:!?)/−*("  ' + "'"})
+
+    print('RE: 00.0%', end='')
+    len_print = 9
+    for i in np.arange(1, len(text), 1):    # <-------------- CHANGES HERE. starting from 1 because need to divide text to 2 parts
+        # max length of the shortest substring from position i onward that has not appeared before
+        l = max_shortest_substring(text, i)
+        summ += (l / np.log2(i + 1))
+        msg = 'RE: {:2.1f}%'.format((i + 1) / len(text) * 100)
+        print(len_print * '\b' + msg, end='')
+        len_print = len(msg)
+
+    summ /= len(text)
+    RE = pow(summ, -1)
+    print('\b' * len_print, end='')
+    return RE
+
+def Relative_entropy(text):
+    if type(text) == list:
+        text = ' '.join(text)
+    text = text.replace('\n', ' ')
+    text_2 = cleanText(text)
+    text_2 = text_2.replace('  ', ' ')
+    # D = ~H(T_masked) - ~H(T_orig)
+    return H(getRandEntry(text_2)) - H(text_2)
 
 
                                         # TTR - Type/Token ratios
@@ -242,7 +378,7 @@ def MATTR(text, window=500):
 if __name__ == '__main__':
 
     tt = '''que una vez estaba mirando en el bote
-estaban durmiendo
+estaban durmiendo que que que 
 y se despertaron
 y se le escapó la rana
 luego el perro metió la cabeza en el frasco
@@ -262,8 +398,14 @@ luego se van a casa
 
     # pr = Word_entrophy(tt)
     # print(pr)
-    re = Relative_entropy(tt, True)
-    print(re)
+    start_time = time.time()
+    re1 = Relative_entropy(copy.deepcopy(tt))
+    print(re1, 'time', time.time()-start_time)
+
+    start_time = time.time()
+    re2 = Relative_entropy_old(copy.deepcopy(tt), True)
+    print(re2, 'time', time.time() - start_time)
+
     ttr = TTR(tt)
     print(f"{ttr = }")
     mttr = MATTR(tt)

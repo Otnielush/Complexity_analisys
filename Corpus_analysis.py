@@ -1,11 +1,12 @@
 import sys, os
+import time
 
 import numpy as np
 from algorithms import Word_entrophy, Relative_entropy, TTR, MATTR
 import pandas as pd
 
 # input DataFrame pandas
-def analyse(table_results):
+def analyse(table_results, symbol=''):
     if table_results.shape[0] == 0:
         table_new = True
     else:
@@ -53,14 +54,15 @@ def analyse(table_results):
                     record['Word entropy'] = -1000
                 try:
                     record['Relative entropy of word structure'] = Relative_entropy(text)
-                except:
+                except Exception as e:
                     record['Relative entropy of word structure'] = -1000
+                    print('RE error', e)
                 try:
                     record['TTR'] = TTR(text)
                 except:
                     record['TTR'] = -1000
                 try:
-                    record['MTTR'] = MATTR(text)
+                    record['MTTR'] = MATTR(text, 10)
                 except:
                     record['MTTR'] = -1000
 
@@ -70,8 +72,8 @@ def analyse(table_results):
                     table_results.loc[file_num_total-1, :] = record.values()
 
     print()
-    table_results.to_csv('corpus_analysis_results.csv', index=None)
-    table_results.to_excel('corpus_analysis_results.xlsx', index=None)
+    table_results.to_csv('corpus_analysis_results_{}.csv'.format(symbol), index=None)
+    table_results.to_excel('corpus_analysis_results_{}.xlsx'.format(symbol), index=None)
 
     return
 
@@ -101,7 +103,8 @@ if __name__ == "__main__":
     print('Analyse all this files?  y / any key')
     do_analyse = input()
     if do_analyse.lower() == 'y':
-        table_results = pd.DataFrame([], columns=['Corpus', 'File name', 'Word entropy',
-                                                  'Relative entropy of word structure', 'TTR', "MTTR"])
+        for i in range(3):
+            table_results = pd.DataFrame([], columns=['Corpus', 'File name', 'Word entropy',
+                                                      'Relative entropy of word structure', 'TTR', "MTTR"])
 
-        analyse(table_results)
+            analyse(table_results, i)

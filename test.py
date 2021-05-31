@@ -9,6 +9,22 @@ def compareTo(str1, str2):
     else:
         return -1
 
+# не понятно
+def compare(query, text, i):
+    M = len(query)
+    j = 0
+    while (i < N and j < M):
+        if (query[j] != text[i]):
+            return query[j] - text[i]
+        i += 1
+        j += 1
+
+    if (i < N):
+        return -1
+    if (j < M):
+        return +1
+    return 0
+
 class SuffixArrayJava6():
     def __init__(self, string):
         self.suffixes = list()
@@ -79,17 +95,21 @@ def max_shortest_substrings():
     print("  i ind lcp rnk  select")
     print("---------------------------")
 
+    mss = dict()
+
     for i in range(suffix.n):
         index = suffix.index(i)
         ith = "\"" + text[index: min(index + 50, len(text))] + "\""
         # String ith = suffix.select(i);
         rank = suffix.rank(suffix.select(i))
         if (i == 0):
-            print("{:3d} {:3d} {:3s} {:3d}  {}\n".format( i, index, " -", rank, ith))
+            print("{:3d} {:3d} {:3s} {:3d}  {}".format( i, index, " -", rank, ith))
         else:
             lcp = suffix.lcp(i, i-1)
-            print("{:3d} {:3d} {:3d} {:3d}  {}\n".format( i, index, lcp, rank, ith))
+            mss[index] = lcp
+            print("{:3d} {:3d} {:3d} {:3d}  {}".format( i, index, lcp, rank, ith))
 
+    print(sorted(mss.items()))
 
 
 max_shortest_substrings()
