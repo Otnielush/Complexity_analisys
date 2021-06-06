@@ -257,20 +257,30 @@ def Relative_entropy_old(text, redundancy=False):
 
 
     # ----------------------------------------------------------------------------------------
-# TODO dict for copy text and dinamic max shortest....
-def getRandEntry(text, lang='en'):
-    if re.search('áéíó', text):
-        lang = 'fr'
-    if lang == 'en':
-        A = [x for x in 'abcdefghigklmnopqrstuvwxyz']
-    else:
-        A = [x for x in 'abcdefghigklmnopqrstuvwxyzáéíóúüñèèçàêô']
+def getRandEntry(text, language):
+    language = language.lower()
+    if language == 'croatian':
+        letters = ['a', 'b', 'c', 'č', 'ć', 'd', 'đ', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'r', 's', 'š', 't', 'u', 'v', 'z', 'ž']
+    elif language == 'russian':
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'x', 'y', 'z']
+    elif language == 'german':
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+    elif language == 'french':
+        letters = ['æ', 'a', 'à', 'â', 'b', 'c', 'ç', 'd', 'e', 'é', 'è', 'ê', 'ë', 'f', 'g', 'h', 'i', 'î', 'ï', 'j', 'k', 'm', 'n', 'œ', 'o', 'ô',
+       'p', 'q', 'r', 's', 't', 'u', 'ù', 'û', 'ü', 'v', 'w', 'x', 'y', 'z']
+    elif language == 'spanish':
+        letters = ['a', 'á', 'b', 'c', 'd', 'e', 'é', 'f', 'g', 'h', 'i', 'í', 'j', 'k', 'l', 'm', 'n', 'ñ', 'o', 'ó', 'p', 'q', 'r', 's', 't', 'u',
+       'ú', 'v', 'x', 'y', 'ý', 'z']
+    elif language == 'italian':
+        letters = ['a', 'à', 'b', 'c', 'd', 'e', 'è', 'f', 'g', 'h', 'i', 'ì', 'm', 'n', 'o', 'ò', 'p', 'q', 'r', 's', 't', 'u', 'ù', 'v', 'z']
+    else:  # English
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
     Dict_random = dict()
     for word in text.split(' '):
         if word in Dict_random.keys():
             continue
-        Dict_random[word] = randomizeWord(len(word))
+        Dict_random[word] = randomizeWord(len(word), letters)
 
     res = []
     for x in text.split(' '):
@@ -291,8 +301,7 @@ def cleanText(text):
 
     return re.sub(special, '', text)
 
-def randomizeWord(l):
-    A = [x for x in'abcdefghigklmnopqrstuvwxyz']
+def randomizeWord(l, A):
     return "".join([random.choice(A) for x in range(l)] )
 
 
@@ -333,14 +342,14 @@ def H(text):
     print('\b' * len_print, end='')
     return RE
 
-def Relative_entropy(text):
+def Relative_entropy(text, language='English'):
     if type(text) == list:
         text = ' '.join(text)
     text = text.replace('\n', ' ')
     text_2 = cleanText(text)
     text_2 = text_2.replace('  ', ' ')
     # D = ~H(T_masked) - ~H(T_orig)
-    return H(getRandEntry(text_2)) - H(text_2)
+    return H(getRandEntry(text_2, language)) - H(text_2)
 
 
                                         # TTR - Type/Token ratios
