@@ -1,3 +1,3 @@
 # Complexity_analisys
 > check [__Complexity analisys__](Complexity_analisys.ipynb) file  
-[**Work/Research paper**](final_report.docx)  
+**Work/Research paper** - in _final report.docx_ file  
